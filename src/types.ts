@@ -2,7 +2,7 @@ export interface Repository {
   id: string;
   owner: string;
   name: string;
-  lastSyncedAt: number;
+  lastSyncedAt?: number;
 };
 
 export interface Commit {
