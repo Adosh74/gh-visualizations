@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pino } from 'pino';
+import pino from 'pino';
 import pretty from 'pino-pretty';
 
 import { serverEnv } from './config';
 
-const streams: { write: any }[] = [
+const streams: pino.DestinationStream[] = [
   serverEnv.nodeEnv === 'production' ? process.stdout : pretty(),
   fs.createWriteStream(path.join(__dirname, '..', 'process.log')),
 ];
@@ -20,7 +20,7 @@ const LOGGER = pino(
       bindings: () => ({}),
     },
   },
-  pino.multistream(streams),
+  streams[0],
 );
 
 export { LOGGER };
