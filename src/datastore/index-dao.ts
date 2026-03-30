@@ -1,5 +1,5 @@
 import type { CommitDao } from './DAOs/commit-dao';
-import type { PullRequestDao } from './DAOs/pull-pequest-dao';
+import type { PullRequestDao } from './DAOs/pull-request-dao';
 import type { RepositoryDao } from './DAOs/repository-dao';
 
 import { SqlDatastore } from './sql/index.sql';
