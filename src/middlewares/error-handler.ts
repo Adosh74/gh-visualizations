@@ -11,7 +11,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
   }
   else {
     LOGGER.error(err);
-    res.status(400).send({
+    res.status(500).send({
       errors: [
         {
           message: 'Some thing went wrong',
