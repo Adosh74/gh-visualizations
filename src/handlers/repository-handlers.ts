@@ -11,6 +11,7 @@ export const createRepository: RequestHandler = async (req: Request, res: Respon
     id: crypto.randomUUID(),
     name: req.body.name,
     owner: req.body.owner,
+    url: req.body.url,
   };
 
   await getDb().createRepository(repoData);

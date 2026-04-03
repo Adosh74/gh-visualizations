@@ -3,6 +3,7 @@ export interface Repository {
   owner: string;
   name: string;
   lastSyncedAt?: number;
+  url: string;
 };
 
 export interface Commit {
