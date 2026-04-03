@@ -60,7 +60,7 @@ export class SqlDatastore implements Datastore {
 
   async createRepository(repository: Repository): Promise<void> {
     await databaseQueryWrapper(() =>
-      this.db.run('INSERT INTO repositories (id, owner, name, last_synced_at) VALUES (?, ?, ?, ?)', repository.id, repository.owner, repository.name, repository.lastSyncedAt),
+      this.db.run('INSERT INTO repositories (id, owner, name, url) VALUES (?, ?, ?, ?)', repository.id, repository.owner, repository.name, repository.url),
     );
   }
 
