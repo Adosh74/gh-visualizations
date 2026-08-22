@@ -1,12 +1,17 @@
 import type { Request, Response } from 'express';
 
+import cors from 'cors';
 import express from 'express';
 
+import { serverEnv } from './config';
 import { NotFound } from './errors/not-found-error';
 import { errorHandler } from './middlewares/error-handler';
 import { APIs } from './routes/index-route';
 
 const app = express();
+
+// The design runs the client as a separate origin, so CORS is not optional.
+app.use(cors({ origin: serverEnv.corsOrigin }));
 
 app.use(express.json());
 
