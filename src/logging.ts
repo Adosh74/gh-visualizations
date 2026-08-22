@@ -12,6 +12,7 @@ const streams: pino.DestinationStream[] = [
 
 const LOGGER = pino(
   {
+    level: serverEnv.nodeEnv === 'test' ? 'silent' : 'info',
     redact: {
       paths: ['body.password'],
       remove: true,
