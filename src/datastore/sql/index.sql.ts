@@ -156,14 +156,16 @@ export class SqlDatastore implements Datastore {
   async commitsPerDay(repoId: string, days: number): Promise<TimeSeriesPoint[]> {
     return await databaseQueryWrapper(() =>
       this.db.all<TimeSeriesPoint[]>(
+        // Bucket on whole UTC days so the result lines up exactly with the
+        // dense `days`-long window the API gap-fills.
         `SELECT date(committed_at / 1000, 'unixepoch') AS date, COUNT(*) AS count
          FROM commits
          WHERE repo_id = ?
-           AND committed_at >= (strftime('%s', 'now', ?) * 1000)
+           AND date(committed_at / 1000, 'unixepoch') >= date('now', ?)
          GROUP BY date
          ORDER BY date ASC`,
         repoId,
-        `-${days} days`,
+        `-${days - 1} days`,
       ),
     );
   }

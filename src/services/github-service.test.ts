@@ -7,8 +7,10 @@ import {
   resolveSyncBranch,
 } from './github-service';
 
-// The mock instance is built inside the factory: `jest.mock` is hoisted above
-// the imports, so it cannot close over a `const` declared in this file.
+// This suite drives Octokit directly, so it replaces the inert manual mock in
+// src/__mocks__ with a factory it controls. The instance is built inside the
+// factory because `jest.mock` is hoisted above the imports and so cannot close
+// over a `const` declared here.
 jest.mock('@octokit/rest', () => {
   const instance = {
     paginate: jest.fn(),

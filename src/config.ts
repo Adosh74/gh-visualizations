@@ -22,6 +22,8 @@ const envSchema = z.object({
   /** Cron expression driving the background sync. */
   SYNC_CRON: z.string().min(1).default('*/5 * * * *'),
   SYNC_ENABLED: z.enum(['true', 'false']).default('true').transform(v => v === 'true'),
+  /** Comma-separated list of browser origins allowed to call the API, or `*`. */
+  CORS_ORIGIN: z.string().min(1).default('*'),
 });
 
 // eslint-disable-next-line node/no-process-env
@@ -40,6 +42,9 @@ const serverEnv = {
   syncLookbackDays: env.data.SYNC_LOOKBACK_DAYS,
   syncCron: env.data.SYNC_CRON,
   syncEnabled: env.data.SYNC_ENABLED,
+  corsOrigin: env.data.CORS_ORIGIN === '*'
+    ? '*'
+    : env.data.CORS_ORIGIN.split(',').map(origin => origin.trim()),
 };
 
 export { NodeEnvType, serverEnv };
