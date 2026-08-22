@@ -11,6 +11,14 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).pipe(
     z.number().int().positive(),
   ).default('3000'),
+  /** Optional, but unauthenticated GitHub API calls are capped at 60 requests/hour. */
+  GITHUB_TOKEN: z.string().min(1).optional(),
+  /** Branch the sync prefers; falls back to the repository default when absent. */
+  SYNC_BRANCH: z.string().min(1).default('develop'),
+  /** How far back a full (first-time) sync reaches. */
+  SYNC_LOOKBACK_DAYS: z.string().transform(Number).pipe(
+    z.number().int().positive(),
+  ).default('90'),
 });
 
 // eslint-disable-next-line node/no-process-env
@@ -24,6 +32,9 @@ if (!env.success) {
 const serverEnv = {
   nodeEnv: env.data.NODE_ENV,
   port: env.data.PORT,
+  githubToken: env.data.GITHUB_TOKEN,
+  syncBranch: env.data.SYNC_BRANCH,
+  syncLookbackDays: env.data.SYNC_LOOKBACK_DAYS,
 };
 
 export { NodeEnvType, serverEnv };
