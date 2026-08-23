@@ -165,8 +165,15 @@ export async function fetchPullRequests(
   base: string,
   since?: Date,
 ): Promise<FetchedPullRequest[]> {
+  const cutoff = since?.getTime();
+  const collected: FetchedPullRequest[] = [];
+
   try {
-    const pulls = await octokit.paginate(octokit.pulls.list, {
+    // `pulls.list` has no server-side date filter, but it can sort by update
+    // time. Walking pages by hand lets the sync stop at the first page that is
+    // entirely older than the watermark instead of pulling the repository's
+    // whole pull request history on every five-minute tick.
+    const pages = octokit.paginate.iterator(octokit.pulls.list, {
       owner,
       repo: name,
       base,
@@ -176,21 +183,32 @@ export async function fetchPullRequests(
       per_page: 100,
     });
 
-    // `pulls.list` cannot filter server-side by date, so trim the tail here.
-    const cutoff = since?.getTime();
+    for await (const { data } of pages) {
+      let reachedCutoff = false;
 
-    return pulls
-      .filter(pr => cutoff === undefined || (toEpochMillis(pr.updated_at) ?? 0) >= cutoff)
-      .map(pr => ({
-        prNumber: pr.number,
-        title: pr.title,
-        author: pr.user?.login ?? 'unknown',
-        body: pr.body ?? null,
-        state: pullRequestState(pr),
-        createdAt: toEpochMillis(pr.created_at) ?? 0,
-        mergedAt: toEpochMillis(pr.merged_at),
-        url: pr.html_url,
-      }));
+      for (const pr of data) {
+        if (cutoff !== undefined && (toEpochMillis(pr.updated_at) ?? 0) < cutoff) {
+          reachedCutoff = true;
+          break;
+        }
+
+        collected.push({
+          prNumber: pr.number,
+          title: pr.title,
+          author: pr.user?.login ?? 'unknown',
+          body: pr.body ?? null,
+          state: pullRequestState(pr),
+          createdAt: toEpochMillis(pr.created_at) ?? 0,
+          mergedAt: toEpochMillis(pr.merged_at),
+          url: pr.html_url,
+        });
+      }
+
+      if (reachedCutoff)
+        break;
+    }
+
+    return collected;
   }
   catch (error) {
     throw toGitHubError(error, `pull requests of ${owner}/${name}`);

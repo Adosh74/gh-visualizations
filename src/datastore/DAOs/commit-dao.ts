@@ -11,6 +11,7 @@ export interface CommitDao {
   listRepoCommits: (repoId: string, options?: ListOptions) => Promise<Commit[]>;
   listRecentCommits: (options?: ListOptions) => Promise<Commit[]>;
   countRepoCommits: (repoId: string) => Promise<number>;
+  countCommits: () => Promise<number>;
   commitsPerDay: (repoId: string, days: number) => Promise<TimeSeriesPoint[]>;
   commitsPerAuthor: (repoId: string) => Promise<AuthorStat[]>;
 }

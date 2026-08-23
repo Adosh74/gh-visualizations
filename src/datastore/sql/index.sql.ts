@@ -153,6 +153,13 @@ export class SqlDatastore implements Datastore {
     return row?.count ?? 0;
   }
 
+  async countCommits(): Promise<number> {
+    const row = await databaseQueryWrapper(() =>
+      this.db.get<{ count: number }>('SELECT COUNT(*) AS count FROM commits'),
+    );
+    return row?.count ?? 0;
+  }
+
   async commitsPerDay(repoId: string, days: number): Promise<TimeSeriesPoint[]> {
     return await databaseQueryWrapper(() =>
       this.db.all<TimeSeriesPoint[]>(
@@ -243,6 +250,13 @@ export class SqlDatastore implements Datastore {
   async countRepoPullRequests(repoId: string): Promise<number> {
     const row = await databaseQueryWrapper(() =>
       this.db.get<{ count: number }>('SELECT COUNT(*) AS count FROM pull_requests WHERE repo_id = ?', repoId),
+    );
+    return row?.count ?? 0;
+  }
+
+  async countPullRequests(): Promise<number> {
+    const row = await databaseQueryWrapper(() =>
+      this.db.get<{ count: number }>('SELECT COUNT(*) AS count FROM pull_requests'),
     );
     return row?.count ?? 0;
   }
