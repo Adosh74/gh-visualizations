@@ -3,13 +3,14 @@ import antfu from '@antfu/eslint-config';
 export default antfu({
   type: 'app',
   typescript: true,
+  react: true,
   formatters: true,
   stylistic: {
     indent: 2,
     semi: true,
     quotes: 'single',
   },
-  ignores: ['.pnpm-store/*'],
+  ignores: ['.pnpm-store/*', 'client/dist/*'],
 }, {
   rules: {
     'ts/no-redeclare': 'off',
