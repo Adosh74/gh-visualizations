@@ -21,6 +21,32 @@ Migrations under `migrations/` apply automatically on start. A background job
 (`SYNC_CRON`, every 5 minutes by default) re-syncs every tracked repository;
 set `SYNC_ENABLED=false` to run the API on its own.
 
+## Running the client
+
+The React client is a standalone package under `client/` — this repository is
+not a pnpm workspace, so it installs on its own:
+
+```bash
+cd client
+pnpm install
+pnpm dev            # http://localhost:5173
+```
+
+`pnpm dev` proxies `/api` to `http://localhost:3000`, so run the server too. To
+point the client at a different host instead, set `VITE_API_URL` (and allow that
+browser origin via the server's `CORS_ORIGIN`).
+
+| Command      | What it does                          |
+| ------------ | ------------------------------------- |
+| `pnpm dev`   | Vite dev server with the API proxy.   |
+| `pnpm build` | Typecheck and build to `client/dist`. |
+| `pnpm test`  | Vitest + Testing Library suite.       |
+
+The dashboard covers the four things the design asks the client for: pick which
+repositories to track, see what changed and who made it, read the description
+that came with each change, and read the activity charts. It follows the
+system colour scheme, with a toggle to pin light or dark.
+
 ## API
 
 All responses are `{ "status": "success", "data": { … } }`; errors are
