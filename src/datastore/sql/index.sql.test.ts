@@ -165,6 +165,16 @@ describe('sqlDatastore', () => {
         .toBeInstanceOf(DatabaseError);
     });
 
+    it('counts commits across every repository', async () => {
+      const other = makeRepository({ owner: 'other', name: 'repo' });
+      await db.createRepository(other);
+      await db.upsertCommit(makeCommit(repoId, { sha: 'a' }));
+      await db.upsertCommit(makeCommit(other.id, { sha: 'b' }));
+
+      await expect(db.countCommits()).resolves.toBe(2);
+      await expect(db.countRepoCommits(repoId)).resolves.toBe(1);
+    });
+
     it('groups commits per author, busiest first', async () => {
       await db.upsertCommit(makeCommit(repoId, { sha: 'a', authorName: 'Ada' }));
       await db.upsertCommit(makeCommit(repoId, { sha: 'b', authorName: 'Ada' }));
@@ -232,6 +242,16 @@ describe('sqlDatastore', () => {
       const prs = await db.listRepoPullRequests(repoId);
       expect(prs).toHaveLength(1);
       expect(prs[0]).toMatchObject({ state: 'merged', mergedAt: 5000 });
+    });
+
+    it('counts pull requests across every repository', async () => {
+      const other = makeRepository({ owner: 'other', name: 'repo' });
+      await db.createRepository(other);
+      await db.upsertPullRequest(makePullRequest(repoId, { prNumber: 1 }));
+      await db.upsertPullRequest(makePullRequest(other.id, { prNumber: 1 }));
+
+      await expect(db.countPullRequests()).resolves.toBe(2);
+      await expect(db.countRepoPullRequests(repoId)).resolves.toBe(1);
     });
 
     it('groups pull requests per author', async () => {

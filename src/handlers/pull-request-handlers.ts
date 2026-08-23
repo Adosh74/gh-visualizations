@@ -20,10 +20,13 @@ export const listRepositoryPullRequests: RequestHandler = async (req: Request, r
 };
 
 export const listAllPullRequests: RequestHandler = async (req: Request, res: Response) => {
-  const pullRequests = await getDb().listPullRequests(parseListOptions(req));
+  const [pullRequests, total] = await Promise.all([
+    getDb().listPullRequests(parseListOptions(req)),
+    getDb().countPullRequests(),
+  ]);
 
   res.status(200).json({
     status: 'success',
-    data: { pullRequests, total: pullRequests.length },
+    data: { pullRequests, total },
   });
 };

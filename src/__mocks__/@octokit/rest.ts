@@ -10,7 +10,7 @@
  * its own `jest.mock('@octokit/rest', ...)` factory that it can drive.
  */
 export class Octokit {
-  paginate = jest.fn();
+  paginate = Object.assign(jest.fn(), { iterator: jest.fn() });
   repos = {
     get: jest.fn(),
     getBranch: jest.fn(),

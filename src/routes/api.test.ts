@@ -357,6 +357,29 @@ describe('aPI', () => {
       expect(response.body.data.commits.map((c: { sha: string }) => c.sha)).toEqual(['newer', 'older']);
     });
 
+    it('reports the untruncated commit total alongside a partial page', async () => {
+      const repo = await trackedRepository();
+      await db.upsertCommit(makeCommit(repo.id, { sha: 'a', committedAt: 1000 }));
+      await db.upsertCommit(makeCommit(repo.id, { sha: 'b', committedAt: 2000 }));
+      await db.upsertCommit(makeCommit(repo.id, { sha: 'c', committedAt: 3000 }));
+
+      const response = await request(app).get(`${API}/commits`).query({ limit: 1 });
+
+      expect(response.body.data.commits).toHaveLength(1);
+      expect(response.body.data.total).toBe(3);
+    });
+
+    it('reports the untruncated pull request total alongside a partial page', async () => {
+      const repo = await trackedRepository();
+      await db.upsertPullRequest(makePullRequest(repo.id, { prNumber: 1 }));
+      await db.upsertPullRequest(makePullRequest(repo.id, { prNumber: 2 }));
+
+      const response = await request(app).get(`${API}/pull-requests`).query({ limit: 1 });
+
+      expect(response.body.data.pullRequests).toHaveLength(1);
+      expect(response.body.data.total).toBe(2);
+    });
+
     it('returns pull requests across every tracked repository', async () => {
       const repo = await trackedRepository();
       await db.upsertPullRequest(makePullRequest(repo.id, { prNumber: 1 }));

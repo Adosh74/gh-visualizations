@@ -7,5 +7,6 @@ export interface PullRequestDao {
   listPullRequests: (options?: ListOptions) => Promise<PullRequest[]>;
   listRepoPullRequests: (repoId: string, options?: ListOptions) => Promise<PullRequest[]>;
   countRepoPullRequests: (repoId: string) => Promise<number>;
+  countPullRequests: () => Promise<number>;
   pullRequestsPerAuthor: (repoId: string) => Promise<AuthorStat[]>;
 }

@@ -21,10 +21,15 @@ export const listRepositoryCommits: RequestHandler = async (req: Request, res: R
 
 /** The cross-repository activity feed the dashboard opens on. */
 export const listRecentCommits: RequestHandler = async (req: Request, res: Response) => {
-  const commits = await getDb().listRecentCommits(parseListOptions(req));
+  // `total` counts every stored commit, not the size of this page — otherwise
+  // a client cannot tell a full page from the end of the list.
+  const [commits, total] = await Promise.all([
+    getDb().listRecentCommits(parseListOptions(req)),
+    getDb().countCommits(),
+  ]);
 
   res.status(200).json({
     status: 'success',
-    data: { commits, total: commits.length },
+    data: { commits, total },
   });
 };

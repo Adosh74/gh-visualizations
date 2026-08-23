@@ -24,14 +24,26 @@ jest.mock('@octokit/rest', () => {
       list: jest.fn(),
     },
   };
-  return { Octokit: jest.fn(() => instance), __instance: instance };
+  const instanceWithIterator = Object.assign(instance, {
+    paginate: Object.assign(instance.paginate, { iterator: jest.fn() }),
+  });
+  return { Octokit: jest.fn(() => instanceWithIterator), __instance: instanceWithIterator };
 });
 
 const mockOctokit = (jest.requireMock('@octokit/rest') as { __instance: {
-  paginate: jest.Mock;
+  paginate: jest.Mock & { iterator: jest.Mock };
   repos: { get: jest.Mock; getBranch: jest.Mock; listCommits: jest.Mock; listForUser: jest.Mock };
   pulls: { list: jest.Mock };
 }; }).__instance;
+
+/** Stands in for octokit's page iterator, one `{ data }` chunk per page. */
+function pagesOf(...pages: Record<string, unknown>[][]) {
+  return {
+    async* [Symbol.asyncIterator]() {
+      for (const data of pages) yield { data };
+    },
+  };
+}
 
 /** Mimics an Octokit RequestError, which carries a numeric `status`. */
 function httpError(status: number) {
@@ -192,7 +204,7 @@ describe('githubService', () => {
 
   describe('fetchPullRequests', () => {
     it('marks a pull request with a merged_at as merged', async () => {
-      mockOctokit.paginate.mockResolvedValue([rawPull()]);
+      mockOctokit.paginate.iterator.mockReturnValue(pagesOf([rawPull()]));
 
       const [pr] = await fetchPullRequests('o', 'r', 'develop');
 
@@ -209,10 +221,10 @@ describe('githubService', () => {
     });
 
     it('distinguishes open from closed-without-merge', async () => {
-      mockOctokit.paginate.mockResolvedValue([
+      mockOctokit.paginate.iterator.mockReturnValue(pagesOf([
         rawPull({ number: 1, state: 'open', merged_at: null }),
         rawPull({ number: 2, state: 'closed', merged_at: null }),
-      ]);
+      ]));
 
       const prs = await fetchPullRequests('o', 'r', 'develop');
 
@@ -221,25 +233,76 @@ describe('githubService', () => {
     });
 
     it('drops pull requests not updated since the watermark', async () => {
-      mockOctokit.paginate.mockResolvedValue([
+      mockOctokit.paginate.iterator.mockReturnValue(pagesOf([
         rawPull({ number: 1, updated_at: '2026-08-20T10:00:00Z' }),
         rawPull({ number: 2, updated_at: '2026-07-01T10:00:00Z' }),
-      ]);
+      ]));
 
       const prs = await fetchPullRequests('o', 'r', 'develop', new Date('2026-08-01T00:00:00Z'));
 
       expect(prs.map(pr => pr.prNumber)).toEqual([1]);
     });
 
-    it('scopes the query to the synced base branch', async () => {
-      mockOctokit.paginate.mockResolvedValue([]);
+    it('stops paginating once a page falls behind the watermark', async () => {
+      const secondPage = jest.fn();
+      mockOctokit.paginate.iterator.mockReturnValue({
+        async* [Symbol.asyncIterator]() {
+          yield {
+            data: [
+              rawPull({ number: 1, updated_at: '2026-08-20T10:00:00Z' }),
+              rawPull({ number: 2, updated_at: '2026-07-01T10:00:00Z' }),
+            ],
+          };
+          // Reaching here means the sync walked the whole history anyway.
+          secondPage();
+          yield { data: [rawPull({ number: 3, updated_at: '2026-06-01T10:00:00Z' })] };
+        },
+      });
+
+      const prs = await fetchPullRequests('o', 'r', 'develop', new Date('2026-08-01T00:00:00Z'));
+
+      expect(prs.map(pr => pr.prNumber)).toEqual([1]);
+      expect(secondPage).not.toHaveBeenCalled();
+    });
+
+    it('walks every page on a first sync, when there is no watermark', async () => {
+      mockOctokit.paginate.iterator.mockReturnValue(pagesOf(
+        [rawPull({ number: 1, updated_at: '2026-08-20T10:00:00Z' })],
+        [rawPull({ number: 2, updated_at: '2025-01-01T10:00:00Z' })],
+      ));
+
+      const prs = await fetchPullRequests('o', 'r', 'develop');
+
+      expect(prs.map(pr => pr.prNumber)).toEqual([1, 2]);
+    });
+
+    it('scopes the query to the synced base branch, newest first', async () => {
+      mockOctokit.paginate.iterator.mockReturnValue(pagesOf([]));
 
       await fetchPullRequests('o', 'r', 'develop');
 
-      expect(mockOctokit.paginate).toHaveBeenCalledWith(
+      expect(mockOctokit.paginate.iterator).toHaveBeenCalledWith(
         mockOctokit.pulls.list,
-        expect.objectContaining({ base: 'develop', state: 'all' }),
+        expect.objectContaining({
+          base: 'develop',
+          state: 'all',
+          sort: 'updated',
+          direction: 'desc',
+        }),
       );
+    });
+
+    it('surfaces a failure part-way through the walk', async () => {
+      mockOctokit.paginate.iterator.mockReturnValue({
+        async* [Symbol.asyncIterator]() {
+          yield { data: [rawPull()] };
+          throw httpError(403);
+        },
+      });
+
+      await expect(fetchPullRequests('o', 'r', 'develop')).rejects.toMatchObject({
+        statusCode: 429,
+      });
     });
   });
 
