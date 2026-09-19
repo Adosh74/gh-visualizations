@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prepare": "husky",
-    "test": "jest --no-cache"
+    "test": "jest --verbose --silent --no-cache"
   },
   "jest": {
     "preset": "ts-jest",
